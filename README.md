@@ -23,7 +23,6 @@ Cross-platform wrappers for the official Ookla `speedtest` CLI.
 Install the official Ookla CLI and `jq`:
 
 ```bash
-brew uninstall speedtest-cli --force
 brew tap teamookla/speedtest
 brew install speedtest
 brew install jq
