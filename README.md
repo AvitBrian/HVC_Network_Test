@@ -40,7 +40,7 @@ Install the official Ookla CLI:
 
 - https://www.speedtest.net/apps/cli
 
-Then run the PowerShell script from this folder.
+Then run the PowerShell script from this folder. Note: # are comments
 
 ## Usage
 
@@ -48,17 +48,17 @@ macOS / Linux:
 
 ```bash
 chmod +x ./test.sh
-./test.sh
-./test.sh 5
-./test.sh 10
+./test.sh #runs 1 test
+./test.sh 3 #runs 3 tests
+./test.sh 10 #runs 10 tests
 ```
 
 Windows 11:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\test.ps1
-powershell -ExecutionPolicy Bypass -File .\test.ps1 -RunCount 5
-powershell -ExecutionPolicy Bypass -File .\test.ps1 -RunCount 10
+powershell -ExecutionPolicy Bypass -File .\test.ps1 #runs 1 test
+powershell -ExecutionPolicy Bypass -File .\test.ps1 -RunCount 5 #runs 5 tests
+powershell -ExecutionPolicy Bypass -File .\test.ps1 -RunCount 10 #runs 10 tests
 ```
 
 ## Notes
