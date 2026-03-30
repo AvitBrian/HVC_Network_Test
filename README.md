@@ -34,8 +34,6 @@ Verify the installed binary:
 speedtest --version
 ```
 
-If the output contains `speedtest-cli 2.x`, that is the wrong tool.
-
 ## Windows 11 Setup
 
 Install the official Ookla CLI:
