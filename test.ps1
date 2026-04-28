@@ -1,9 +1,9 @@
-$ErrorActionPreference = 'Stop'
-
 param(
     [ValidateRange(1, 100)]
     [int]$RunCount = 3
 )
+
+$ErrorActionPreference = 'Stop'
 
 function Require-Command {
     param([string]$Name)
