@@ -117,4 +117,5 @@ powershell -ExecutionPolicy Bypass -File .\test.ps1
 - `test.ps1` does not require `jq`.
 - The default run count is `3` on all platforms.
 - Multiple runs are more reliable than a single run, especially for packet loss.
+- If one PowerShell run fails, the script continues with the remaining runs and summarizes successful results.
 - A `0%` packet loss result can still be valid because it only reflects the test path and time window sampled.

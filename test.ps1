@@ -8,9 +8,25 @@ $ErrorActionPreference = 'Stop'
 function Require-Command {
     param([string]$Name)
 
-    if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-        throw "Required command '$Name' is not installed."
+    $command = Get-Command $Name -ErrorAction SilentlyContinue
+    if (-not $command -or $command.CommandType -ne 'Application') {
+        throw "Required command '$Name' is not installed or is not an external executable."
     }
+}
+
+function Write-StatsLine {
+    param(
+        [string]$Label,
+        [object[]]$Data,
+        [string]$Property,
+        [string]$Unit
+    )
+
+    $average = ($Data | Measure-Object -Property $Property -Average).Average
+    $minimum = ($Data | Measure-Object -Property $Property -Minimum).Minimum
+    $maximum = ($Data | Measure-Object -Property $Property -Maximum).Maximum
+
+    Write-Host ("{0} avg/min/max: {1:N2} / {2:N2} / {3:N2} {4}" -f $Label, $average, $minimum, $maximum, $Unit)
 }
 
 Require-Command speedtest
@@ -23,8 +39,27 @@ Write-Host ""
 $runs = @()
 
 for ($run = 1; $run -le $RunCount; $run++) {
-    $jsonOutput = speedtest --accept-license --accept-gdpr --format=json
-    $result = $jsonOutput | ConvertFrom-Json
+    try {
+        $jsonOutput = speedtest --accept-license --accept-gdpr --format=json
+        $result = $jsonOutput | ConvertFrom-Json
+
+        if (
+            $null -eq $result.download -or
+            $null -eq $result.upload -or
+            $null -eq $result.ping -or
+            $null -eq $result.download.bandwidth -or
+            $null -eq $result.upload.bandwidth -or
+            $null -eq $result.ping.latency -or
+            $null -eq $result.ping.jitter
+        ) {
+            throw "Speedtest did not return a valid result payload."
+        }
+    }
+    catch {
+        Write-Host ("[Run {0}/{1}] failed: {2}" -f $run, $RunCount, $_.Exception.Message)
+        Write-Host ""
+        continue
+    }
 
     $downloadMbps = [double]$result.download.bandwidth * 8 / 1000000
     $uploadMbps = [double]$result.upload.bandwidth * 8 / 1000000
@@ -58,15 +93,20 @@ for ($run = 1; $run -le $RunCount; $run++) {
     Write-Host ""
 }
 
+if ($runs.Count -eq 0) {
+    throw "No successful speedtest runs were completed."
+}
+
 Write-Host "=== SUMMARY ==="
-Write-Host ("Download avg/min/max: {0:N2} / {1:N2} / {2:N2} Mbit/s" -f (($runs | Measure-Object -Property DownloadMbps -Average).Average), (($runs | Measure-Object -Property DownloadMbps -Minimum).Minimum), (($runs | Measure-Object -Property DownloadMbps -Maximum).Maximum))
-Write-Host ("Upload avg/min/max: {0:N2} / {1:N2} / {2:N2} Mbit/s" -f (($runs | Measure-Object -Property UploadMbps -Average).Average), (($runs | Measure-Object -Property UploadMbps -Minimum).Minimum), (($runs | Measure-Object -Property UploadMbps -Maximum).Maximum))
-Write-Host ("Latency avg/min/max: {0:N2} / {1:N2} / {2:N2} ms" -f (($runs | Measure-Object -Property LatencyMs -Average).Average), (($runs | Measure-Object -Property LatencyMs -Minimum).Minimum), (($runs | Measure-Object -Property LatencyMs -Maximum).Maximum))
-Write-Host ("Jitter avg/min/max: {0:N2} / {1:N2} / {2:N2} ms" -f (($runs | Measure-Object -Property JitterMs -Average).Average), (($runs | Measure-Object -Property JitterMs -Minimum).Minimum), (($runs | Measure-Object -Property JitterMs -Maximum).Maximum))
+Write-StatsLine -Label 'Download' -Data $runs -Property 'DownloadMbps' -Unit 'Mbit/s'
+Write-StatsLine -Label 'Upload' -Data $runs -Property 'UploadMbps' -Unit 'Mbit/s'
+Write-StatsLine -Label 'Latency' -Data $runs -Property 'LatencyMs' -Unit 'ms'
+Write-StatsLine -Label 'Jitter' -Data $runs -Property 'JitterMs' -Unit 'ms'
 
 $packetLossRuns = $runs | Where-Object { $null -ne $_.PacketLoss }
-if ($packetLossRuns.Count -gt 0) {
-    Write-Host ("Packet loss avg/min/max: {0:N2}% / {1:N2}% / {2:N2}%" -f (($packetLossRuns | Measure-Object -Property PacketLoss -Average).Average), (($packetLossRuns | Measure-Object -Property PacketLoss -Minimum).Minimum), (($packetLossRuns | Measure-Object -Property PacketLoss -Maximum).Maximum))
-} else {
+if (@($packetLossRuns).Count -gt 0) {
+    Write-StatsLine -Label 'Packet loss' -Data $packetLossRuns -Property 'PacketLoss' -Unit '%'
+}
+else {
     Write-Host "Packet loss avg/min/max: N/A"
 }
